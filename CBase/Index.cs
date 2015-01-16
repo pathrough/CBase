@@ -19,6 +19,8 @@ namespace CBase
 
         public long NextIndexBlockPosition { get; set; }
 
+        public bool IsLeaf { get; set; }
+
         public static int MaxIndexCount = 10;
 
     }
