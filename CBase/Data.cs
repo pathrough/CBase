@@ -30,19 +30,8 @@ namespace CBase
         public List<Block> BlockList { get; set; }
     }
 
-    public class Index
-    {
+   
 
-    }
-
-    public class IndexBlock
-    {
-        public List<Index> IndexList{ get; set; }
-    }
-    public class IndexFile
-    {
-        public List<IndexBlock> IndexBlockList { get; set; }
-    }
         
     public interface IRecordBytesConverter
     {
@@ -65,22 +54,7 @@ namespace CBase
         }
     }
 
-    public static class BytesConvertUtility
-    {
-        public static byte[] ToBytes(this string input)
-        {
-            return Encoding.UTF8.GetBytes(input);
-        }
-
-        public static byte[] ToBytes(this int input)
-        {
-            return BitConverter.GetBytes(input);
-        }
-
-        public static byte[] ToBytes(this long input)
-        {
-            return BitConverter.GetBytes(input);
-        }
-    }
+   
+    
 
 }
