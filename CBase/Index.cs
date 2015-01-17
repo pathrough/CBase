@@ -6,14 +6,27 @@ using System.Threading.Tasks;
 
 namespace CBase
 {
-    public class Index
+    public class Index : IByteConvertor
     {
+        /// <summary>
+        /// 所属的块
+        /// </summary>
+        public IndexBlock Block { get; set; }
         public string IndexValue { get; set; }
         public long DataBlockStartPosition { get; set; }
         public long DataBlockLength { get; set; }
+
+        public List<byte> GetBytes()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IndexBlock NextLevelIndexBloclk { get; set; }
+
+        public Block DataBlock { get; set; }
     }
 
-    public class IndexBlock
+    public class IndexBlock : IByteConvertor
     {
         public List<Index> IndexList { get; set; }
 
@@ -22,6 +35,13 @@ namespace CBase
         public bool IsLeaf { get; set; }
 
         public static int MaxIndexCount = 10;
+
+        public static int MaxSize = 100;
+
+        public List<byte> GetBytes()
+        {
+            return new List<byte>();
+        }
 
     }
     public class IndexFile
