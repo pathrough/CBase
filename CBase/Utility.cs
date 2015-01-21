@@ -22,5 +22,10 @@ namespace CBase
         {
             return BitConverter.GetBytes(input);
         }
+
+        public static byte[] ToBytes(this bool input)
+        {
+            return BitConverter.GetBytes(input);
+        }
     }
 }

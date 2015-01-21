@@ -13,7 +13,7 @@ namespace CBase
         {
             IndexManager im = new IndexManager();
             DataManager dm = new DataManager();
-            if(im.HaveIndex==false)
+            if (im.HaveIndex == false)
             {
                 im.CreateIndexBlock(record.Value);
                 dm.CreateDataBlock(record);
@@ -21,34 +21,51 @@ namespace CBase
             else
             {
                 var ib = im.GetFirstIndexBlock();
-                Index target=null;
-                foreach(var index in ib.IndexList)
-                {
-                    if(index.IndexValue.CompareTo(record.Value)>=1)
-                    {
-                        target = index;
-                        break;
-                    }
-                }
+                var leafIndex = GetLeafIndex(im, dm, record, ib);
+                Block dataBlock = leafIndex.DataBlock;
+                dataBlock.AppendRecord(record);
+            }
+        }
 
-                if(target==null)
+        Index GetLeafIndex(IndexManager im, DataManager dm, Record record, IndexBlock indexBlock)
+        {
+            Index target = null;
+            foreach (var index in indexBlock.IndexList)
+            {
+                if (index.IndexValue.CompareTo(record.Value) >= 1)
                 {
-                    //找不到
+                    target = index;
+                    break;
                 }
-                else
-                {
-                    if(target.Block.IsLeaf)
-                    {
+            }
 
-                    }
-                }
+            if (target == null)
+            {
+                //找不到
+                target = indexBlock.IndexList[indexBlock.IndexList.Count - 1];//qu最后一个
+            }
+
+            if (target.IsLeaf)
+            {
+                return target;
+            }
+            else
+            {
+                return GetLeafIndex(im, dm, record, target.SubBlock);
             }
         }
     }
 
     public class IndexManager
     {
-        public bool HaveIndex { get; set; }
+        const string INDEX_FILENAME = "index";
+        public bool HaveIndex
+        {
+            get
+            {
+                return File.Exists(INDEX_FILENAME);
+            }
+        }
         public IndexBlock GetFirstIndexBlock()
         {
             return new IndexBlock();
@@ -63,9 +80,9 @@ namespace CBase
         {
             IndexBlock ib = new IndexBlock();
             ib.IsLeaf = true;
-            using(FileStream fs = new FileStream("index",FileMode.OpenOrCreate,FileAccess.ReadWrite))
+            using (FileStream fs = new FileStream(INDEX_FILENAME, FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {
-                byte[] bs= ib.GetBytes().ToArray();
+                byte[] bs = ib.GetBytes().ToArray();
                 fs.Write(bs, 0, bs.Length);
             }
         }

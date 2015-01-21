@@ -11,17 +11,42 @@ namespace CBase
         /// <summary>
         /// 所属的块
         /// </summary>
-        public IndexBlock Block { get; set; }
+        public IndexBlock ParentBlock { get; set; }
+
+        public bool IsLeaf
+        {
+            get
+            {
+                return ParentBlock.IsLeaf;
+            }
+        }
+
+        /// <summary>
+        /// [导航属性]指向的下级索引块
+        /// </summary>
+        public IndexBlock SubBlock { get; set; }
+
+        /// <summary>
+        /// 持久化元数据
+        /// </summary>
         public string IndexValue { get; set; }
+        /// <summary>
+        /// 持久化元数据
+        /// </summary>
         public long DataBlockStartPosition { get; set; }
+        /// <summary>
+        /// 持久化元数据
+        /// </summary>
         public long DataBlockLength { get; set; }
 
         public List<byte> GetBytes()
         {
-            throw new NotImplementedException();
+            List<byte> bsList = new List<byte>();
+            bsList.AddRange(IndexValue.ToBytes());
+            bsList.AddRange(DataBlockStartPosition.ToBytes());
+            bsList.AddRange(DataBlockLength.ToBytes());
+            return bsList;
         }
-
-        public IndexBlock NextLevelIndexBloclk { get; set; }
 
         public Block DataBlock { get; set; }
     }
@@ -40,7 +65,13 @@ namespace CBase
 
         public List<byte> GetBytes()
         {
-            return new List<byte>();
+            var bsList = new List<byte>();
+            bsList.AddRange(IsLeaf.ToBytes());
+            foreach(var index in IndexList)
+            {
+                bsList.AddRange(index.GetBytes());
+            }
+            return bsList;
         }
 
     }

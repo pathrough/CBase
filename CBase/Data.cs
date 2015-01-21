@@ -45,7 +45,18 @@ namespace CBase
 
         public List<byte> GetBytes()
         {
+            List<byte> bsList = new List<byte>();
+            foreach(var record in RecordList)
+            {
+                bsList.AddRange(record.GetBytes());
+            }
             return new List<byte>();
+        }
+
+        public void AppendRecord(Record record)
+        {
+            RecordList.Add(record);
+            //todo:持久化
         }
     }
 
