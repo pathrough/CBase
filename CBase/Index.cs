@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,11 @@ namespace CBase
 {
     public class Index : IByteConvertor
     {
+        public Index(IndexBlock parentBlock, string indexValue)
+        {
+            this.ParentBlock = parentBlock;
+            this.IndexValue = indexValue;
+        }
         /// <summary>
         /// 所属的块
         /// </summary>
@@ -53,11 +59,36 @@ namespace CBase
 
     public class IndexBlock : IByteConvertor
     {
+        readonly IndexFile _File;
+        public IndexFile File { get; }
+        public IndexBlock(bool isLeaf,IndexFile file)
+        {
+            this._IsLeaf = isLeaf;
+            this._File = file;
+        }
+
+        public static IndexBlock FirstIndexBlock { get; set; }
+
+        public static IndexBlock CreateIndexBlock(string value,IndexFile file)
+        {
+            IndexBlock ib = new IndexBlock(isLeaf: true, file:file);
+            ib.IndexList.Add(new Index(indexValue: value, parentBlock: ib));
+            using (FileStream fs = new FileStream(Config.INDEX_FILE_NAME, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            {
+                byte[] bs = ib.GetBytes().ToArray();
+                fs.Write(bs, 0, bs.Length);
+            }
+            return ib;
+        }
+        
         public List<Index> IndexList { get; set; }
+
+        public int IndexCount { get; set; }
 
         public long NextIndexBlockPosition { get; set; }
 
-        public bool IsLeaf { get; set; }
+        readonly bool _IsLeaf;
+        public bool IsLeaf { get;}
 
         public static int MaxIndexCount = 10;
 
@@ -77,7 +108,41 @@ namespace CBase
     }
     public class IndexFile
     {
-        public List<IndexBlock> IndexBlockList { get; set; }
+        readonly string _FileName;
+        string FileName
+        {
+            get { return _FileName; }
+        }
+
+        readonly FileStream _File;
+        public FileStream File
+        {
+            get { return _File; }
+        } 
+
+
+        public IndexFile(string fileName)
+        {
+            _FileName = fileName;
+            _File = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+        }
+        List<IndexBlock> _IndexBlockList;
+        public List<IndexBlock> IndexBlockList
+        {
+            get
+            {
+                if(_IndexBlockList==null)
+                {
+                    //todo:_IndexBlockList io
+                    if(_IndexBlockList==null)
+                    {
+                        _IndexBlockList = new List<IndexBlock>();
+                    }
+                }
+                return _IndexBlockList;
+            }
+        }
+
     }
 
     public class IndexBytesConverter

@@ -11,8 +11,9 @@ namespace ConsoleApplication1
     {
         static void Main(string[] args)
         {
-            Manager m = new Manager();
-            m.AddRecord(new Record { ID=1,Key="name",Value="hugo"});
+            //Manager m = new Manager();
+            //m.AddRecord(new Record { ID=1,Key="name",Value="hugo"});
+            IndexFile indexFile = new IndexFile(Config.INDEX_FILE_NAME);
         }
     }
 }
