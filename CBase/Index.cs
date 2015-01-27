@@ -18,9 +18,9 @@ namespace CBase
 
         public Index(IndexBlock parentBlock, long lngPosition)
         {
-            this.ParentBlock = parentBlock;           
+            this.ParentBlock = parentBlock;
         }
-        
+
         /// <summary>
         /// 所属的块
         /// </summary>
@@ -37,8 +37,9 @@ namespace CBase
         /// <summary>
         /// [导航属性]指向的下级索引块
         /// </summary>
-        public IndexBlock SubBlock {
-            get; 
+        public IndexBlock SubBlock
+        {
+            get;
         }
 
         /// <summary>
@@ -68,87 +69,127 @@ namespace CBase
 
     public class IndexBlock : IByteConvertor
     {
-        readonly IndexFile _File;
-        public IndexFile IndexFile { get; }
+        readonly IndexFile _IndexFile;
+        public IndexFile IndexFile { 
+            get
+            {
+                return _IndexFile;
+            }
+        }
 
-        //创建
-        public IndexBlock(bool isLeaf,IndexFile file)
+        ////创建
+        //public IndexBlock(bool isLeaf, IndexFile file)
+        //{
+        //    this._IsLeaf = isLeaf;
+        //    this._File = file;
+        //}
+
+        readonly byte[] _ByteArray;
+
+        byte[] ByteArray
         {
-            this._IsLeaf = isLeaf;
-            this._File = file;
+            get { return _ByteArray; }
         }
 
         //获取
-        public IndexBlock(IndexFile file,long lngPosition)
+        public IndexBlock(IndexFile file, long lngPosition, int iBlockLength)
         {
+            _IndexFile = file;
             IndexFile.File.Position = lngPosition;
 
-            byte[] bs = new byte[4];
+            byte[] bs = new byte[iBlockLength];
             IndexFile.File.Read(bs, 0, bs.Length);
-            _BlockLength = bs.ToInt32();
-
-            bs = new byte[8];
-            IndexFile.File.Read(bs, 0, bs.Length);
-            _NextBlockPosition = bs.ToInt64();
-
-            bs = new byte[1];
-            IndexFile.File.Read(bs, 0, bs.Length);
-            _IsLeaf = bs.ToBoolean();
+            _ByteArray = bs;
         }
 
-        readonly int _BlockLength;
+        public IndexBlock (IndexFile file,bool isLeaf)
+        {
 
-        readonly long _NextBlockPosition;
+        }
+
+        //readonly int _BlockLength;
+
+        const int ISLEAF_INDEX = 0;
+        const int NEXT_BLOCK_POSITION_INDEX = 1;
+        const int NEXT_BLOCK_LENGTH_INDEX = 10;
+
+        bool? _IsLeaf;
+        public bool IsLeaf
+        {
+            get
+            {
+                if (_IsLeaf == null)
+                {
+                    byte[] bs = new byte[1];
+                    ByteArray.CopyTo(bs, ISLEAF_INDEX);
+                    _IsLeaf = bs.ToBoolean();
+                }
+                return _IsLeaf.Value;
+            }
+        }
+
+        long? _NextBlockPosition;
+
+        public long NextBlockPosition
+        {
+            get 
+            {
+                if (_NextBlockPosition==null)
+                {
+                    byte[] bs = new byte[8];
+                    ByteArray.CopyTo(bs, NEXT_BLOCK_POSITION_INDEX);
+                    _NextBlockPosition = bs.ToInt64();
+                }
+                return _NextBlockPosition.Value;
+            }
+        }
+
+        int? _NextBlockLength;
+
+        public int NextBlockLength
+        {
+            get
+            {
+                if (_NextBlockLength==null)
+                {
+                     byte[] bs = new byte[4];
+                    ByteArray.CopyTo(bs, NEXT_BLOCK_LENGTH_INDEX);
+                    _NextBlockLength = bs.ToInt32();
+                }
+                return _NextBlockLength.Value; 
+            }
+        } 
+
 
         IndexBlock _NextBlock;
         IndexBlock NextBlock
         {
             get
             {
-                if (_NextBlock==null)
+                if (_NextBlock == null)
                 {
-                    _NextBlock = new IndexBlock(this.IndexFile,_NextBlockPosition);
+                    _NextBlock = new IndexBlock(this.IndexFile, NextBlockPosition, NextBlockLength);
                 }
                 return _NextBlock;
             }
         }
 
-        //public static IndexBlock CreateIndexBlock(string value, IndexFile file)
-        //{
-        //    IndexBlock ib = new IndexBlock(isLeaf: true, file: file);
-        //    ib.IndexList.Add(new Index(indexValue: value, parentBlock: ib));
-        //    using (FileStream fs = new FileStream(Config.INDEX_FILE_NAME, FileMode.OpenOrCreate, FileAccess.ReadWrite))
-        //    {
-        //        byte[] bs = ib.GetBytes().ToArray();
-        //        fs.Write(bs, 0, bs.Length);
-        //    }
-        //    return ib;
-        //}
-
         List<Index> _IndexList;
-        public List<Index> IndexList {
+        public List<Index> IndexList
+        {
             get
             {
+                //todo:_IndexList
                 return _IndexList;
             }
         }
 
-        public int IndexCount { get; set; }
-
-        //public long NextIndexBlockPosition { get; set; }
-
-        readonly bool _IsLeaf;
-        public bool IsLeaf { get;}
-
-        public static int MaxIndexCount = 10;
-
-        public static int MaxSize = 100;
 
         public List<byte> GetBytes()
         {
             var bsList = new List<byte>();
             bsList.AddRange(IsLeaf.ToBytes());
-            foreach(var index in IndexList)
+            foreach (var index in IndexList)
             {
                 bsList.AddRange(index.GetBytes());
             }
@@ -168,13 +209,15 @@ namespace CBase
         public FileStream File
         {
             get { return _File; }
-        } 
+        }
 
 
         public IndexFile(string fileName)
         {
             _FileName = fileName;
             _File = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+
+          
         }
 
         IndexBlock _FirstBlock;
@@ -185,11 +228,40 @@ namespace CBase
             {
                 if (_FirstBlock == null)
                 {
-                    _FirstBlock = new IndexBlock(this, 0);
+                    if (this.FirstIndexBlockLength==0)
+                    {
+                        //创建
+                        _FirstBlock = new IndexBlock(this,true);
+                    }
+                    else
+                    {
+                        _FirstBlock = new IndexBlock(this, this.File.Position, this.FirstIndexBlockLength);
+                    }
+                    
                 }
                 return _FirstBlock;
             }
         }
+
+        int? _FirstIndexBlockLength;
+
+        int FirstIndexBlockLength
+        {
+            get 
+            {
+                if(_FirstIndexBlockLength==null)
+                {
+                    //第一个索引块的长度
+                    byte[] bs = new byte[4];
+                    File.Read(bs, 0, bs.Length);
+                    _FirstIndexBlockLength = bs.ToInt32();
+                }               
+                return _FirstIndexBlockLength; 
+            }
+        }
+
+
+
         //List<IndexBlock> _IndexBlockList;
         //public List<IndexBlock> IndexBlockList
         //{
@@ -206,15 +278,15 @@ namespace CBase
         //        return _IndexBlockList;
         //    }
         //}
-        
-        IndexBlock GetFirstIndexBlock()
-        {
-            File.Position = 0;
-            byte[] bs = new byte[8];
-            File.Read(bs, 0, bs.Length);
-            long blnBlockLen = bs;
 
-        }
+        //IndexBlock GetFirstIndexBlock()
+        //{
+        //    File.Position = 0;
+        //    byte[] bs = new byte[8];
+        //    File.Read(bs, 0, bs.Length);
+        //    long blnBlockLen = bs.ToInt64();
+
+        //}
 
     }
 
